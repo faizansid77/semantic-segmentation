@@ -302,16 +302,16 @@ class ImageDumper():
 
         input_image = dump_dict['input_images'][idx]
         prob_image = dump_dict['assets']['prob_mask'][idx]
-        gt_image = dump_dict['gt_images'][idx]
+        # gt_image = dump_dict['gt_images'][idx]
         prediction = dump_dict['assets']['predictions'][idx]
         del dump_dict['assets']['predictions']
         img_name = dump_dict['img_names'][idx]
         
-        if self.dump_for_auto_labelling:
-            # Dump Prob
-            prob_fn = '{}_prob.png'.format(img_name)
-            prob_fn = os.path.join(self.save_dir, prob_fn)
-            cv2.imwrite(prob_fn, (prob_image.cpu().numpy()*255).astype(np.uint8))
+        # if self.dump_for_auto_labelling:
+        #     # Dump Prob
+        #     prob_fn = '{}_prob.png'.format(img_name)
+        #     prob_fn = os.path.join(self.save_dir, prob_fn)
+        #     cv2.imwrite(prob_fn, (prob_image.cpu().numpy()*255).astype(np.uint8))
             
         if self.dump_for_auto_labelling or self.dump_for_submission:
             # Dump Predictions
@@ -327,63 +327,65 @@ class ImageDumper():
         input_image = input_image.cpu()
         input_image = standard_transforms.ToPILImage()(input_image)
         input_image = input_image.convert("RGB")
-        input_image_fn = f'{img_name}_input.png'
-        input_image.save(os.path.join(self.save_dir, input_image_fn))
+        # input_image_fn = f'{img_name}_input.png'
+        # input_image.save(os.path.join(self.save_dir, input_image_fn))
 
-        gt_fn = '{}_gt.png'.format(img_name)
-        gt_pil = colorize_mask_fn(gt_image.cpu().numpy())
-        gt_pil.save(os.path.join(self.save_dir, gt_fn))
+        # gt_fn = '{}_gt.png'.format(img_name)
+        # gt_pil = colorize_mask_fn(gt_image.cpu().numpy())
+        # gt_pil.save(os.path.join(self.save_dir, gt_fn))
 
-        prediction_fn = '{}_prediction.png'.format(img_name)
-        prediction_pil = colorize_mask_fn(prediction)
-        prediction_pil.save(os.path.join(self.save_dir, prediction_fn))
+        prediction_fn = os.path.join(self.save_dir, img_name)
+        prediction_pil = colorize_mask_fn(prediction).convert('RGB')
+
+        os.makedirs(os.path.dirname(prediction_fn), exist_ok=True)
+        prediction_pil.save(prediction_fn, "JPEG")
 
         prediction_pil = prediction_pil.convert('RGB')
-        composited = Image.blend(input_image, prediction_pil, 0.4)
-        composited_fn = 'composited_{}.png'.format(img_name)
-        composited_fn = os.path.join(self.save_dir, composited_fn)
-        composited.save(composited_fn)
+        # composited = Image.blend(input_image, prediction_pil, 0.4)
+        # composited_fn = 'composited_{}.png'.format(img_name)
+        # composited_fn = os.path.join(self.save_dir, composited_fn)
+        # composited.save(composited_fn)
 
         # only visualize a limited number of images
         if val_idx % self.viz_frequency or cfg.GLOBAL_RANK != 0:
             return
 
-        to_tensorboard = [
-            self.visualize(input_image.convert('RGB')),
-            self.visualize(gt_pil.convert('RGB')),
-            self.visualize(prediction_pil.convert('RGB')),
-        ]
-        to_webpage = [
-            (input_image_fn, 'input'),
-            (gt_fn, 'gt'),
-            (prediction_fn, 'prediction'),
-        ]
+        # to_tensorboard = [
+        #     self.visualize(input_image.convert('RGB')),
+        #     self.visualize(gt_pil.convert('RGB')),
+        #     self.visualize(prediction_pil.convert('RGB')),
+        # ]
+        # to_webpage = [
+        #     (input_image_fn, 'input'),
+        #     (gt_fn, 'gt'),
+        #     (prediction_fn, 'prediction'),
+        # ]
 
-        if self.dump_assets:
-            assets = dump_dict['assets']
-            for asset in assets:
-                mask = assets[asset][idx]
-                mask_fn = os.path.join(self.save_dir, f'{img_name}_{asset}.png')
+        # if self.dump_assets:
+        #     assets = dump_dict['assets']
+        #     for asset in assets:
+        #         mask = assets[asset][idx]
+        #         mask_fn = os.path.join(self.save_dir, f'{img_name}_{asset}.png')
 
-                if 'pred_' in asset:
-                    pred_pil = colorize_mask_fn(mask)
-                    pred_pil.save(mask_fn)
-                    continue
+        #         if 'pred_' in asset:
+        #             pred_pil = colorize_mask_fn(mask)
+        #             pred_pil.save(mask_fn)
+        #             continue
 
-                if type(mask) == torch.Tensor:
-                    mask = mask.squeeze().cpu().numpy()
-                else:
-                    mask = mask.squeeze()
-                mask = (mask * 255)
-                mask = mask.astype(np.uint8)
-                mask_pil = Image.fromarray(mask)
-                mask_pil = mask_pil.convert('RGB')
-                mask_pil.save(mask_fn)
-                to_tensorboard.append(self.visualize(mask_pil))
-                to_webpage.append((mask_fn, asset))
+        #         if type(mask) == torch.Tensor:
+        #             mask = mask.squeeze().cpu().numpy()
+        #         else:
+        #             mask = mask.squeeze()
+        #         mask = (mask * 255)
+        #         mask = mask.astype(np.uint8)
+        #         mask_pil = Image.fromarray(mask)
+        #         mask_pil = mask_pil.convert('RGB')
+        #         mask_pil.save(mask_fn)
+        #         to_tensorboard.append(self.visualize(mask_pil))
+                # to_webpage.append((mask_fn, asset))
 
-        self.imgs_to_tensorboard.append(to_tensorboard)
-        self.imgs_to_webpage.append(to_webpage)
+        # self.imgs_to_tensorboard.append(to_tensorboard)
+        # self.imgs_to_webpage.append(to_webpage)
 
     def write_summaries(self, was_best):
         """
@@ -394,11 +396,11 @@ class ImageDumper():
         always update webpage
         always save N images
         """
-        if self.write_webpage:
-            ip = ResultsPage('prediction examples', self.webpage_fn)
-            for img_set in self.imgs_to_webpage:
-                ip.add_table(img_set)
-            ip.write_page()
+        # if self.write_webpage:
+        #     ip = ResultsPage('prediction examples', self.webpage_fn)
+        #     for img_set in self.imgs_to_webpage:
+        #         ip.add_table(img_set)
+        #     ip.write_page()
 
         if self.tensorboard and was_best:
 

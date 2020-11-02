@@ -151,6 +151,9 @@ class BaseLoader(data.Dataset):
 
     def read_images(self, img_path, mask_path, mask_out=False):
         img = Image.open(img_path).convert('RGB')
+        # IMG_W, IMG_H = img.size
+        # img = img.resize((int(IMG_W), int(IMG_H)))
+
         if mask_path is None or mask_path == '':
             w, h = img.size
             mask = np.zeros((h, w))
@@ -167,7 +170,8 @@ class BaseLoader(data.Dataset):
 
 
 
-        img_name = os.path.splitext(os.path.basename(img_path))[0]
+        # img_name = os.path.splitext(os.path.basename(img_path))[0]
+        img_name = img_path
 
         mask = np.array(mask)
         if (mask_out):

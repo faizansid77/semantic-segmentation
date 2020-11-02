@@ -20,4 +20,8 @@ RUN apt-get install libgtk2.0-dev -y && rm -rf /var/lib/apt/lists/*
 
 # Install Apex
 RUN cd /home/ && git clone https://github.com/NVIDIA/apex.git apex && cd apex && python setup.py install --cuda_ext --cpp_ext
-WORKDIR /home/
+WORKDIR /home/sahil/data/semantic-segmentation
+
+COPY . .
+
+RUN python -m runx.runx scripts/dump_folder.yml -i
